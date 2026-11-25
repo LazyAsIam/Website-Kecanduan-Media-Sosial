@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pemeriksaan sambungan</title>
+<script>try{var t=localStorage.getItem('theme');if(t!=='dark'&&t!=='light'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <div class="card">
+    <h2>Pemeriksaan sambungan</h2>
+    <p class="muted">Halaman peneliti untuk memeriksa apakah situs ini terhubung ke backend Anda. Memakai uji kering: tidak ada data yang disimpan di Google Sheets.</p>
+    <ol id="list" class="shaplist"></ol>
+    <p id="summary" role="status"><strong>Memeriksa…</strong></p>
+  </div>
+</main>
+<script src="config.js"></script>
+<script src="instrument.js"></script>
+<script src="submit.js"></script>
+<script>
+(async function () {
+  const I = Instrument, C = window.APP_CONFIG || {}, list = document.getElementById('list');
+  const SAMPLE = { S1: 'ya', S2: 'ya', S3: 'belum', D1: 20, D2: 'perempuan', D3: 2023, D4: 's1_informatika', F1: 3.5, F2: 3, F3: 'tiktok', F4: 'hiburan',
+    F5: 4, F6: 2, F7: 6.5, B1: 3, B2: 3, B3: 2, B4: 2, B5: 1, B6: 2, P1: 3, P2: 4, P3: 2, P4: 5, P5: 1, P6: 2, P7: 5 };
+  let bad = 0;
+  function row(ok, text, hint) {
+    if (!ok) bad++;
+    const li = document.createElement('li'), s = document.createElement('strong');
+    s.textContent = ok ? '✓ Berhasil: ' : '✗ Gagal: ';
+    li.append(s, document.createTextNode(text));
+    if (!ok && hint) { const d = document.createElement('div'); d.className = 'muted'; d.textContent = hint; li.append(d); }
+    list.append(li);
+  }
+  const post = async (extra) => (await fetch(C.BACKEND_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow',
+    body: JSON.stringify(Object.assign({ submission_id: Submitter.uuid(), consent: true, language_preference: 'id', duration_seconds: 1, model_status: 'not_trained', dry_run: true, answers: SAMPLE }, extra)) })).json();
+
+  row(!!(window.crypto && crypto.randomUUID), 'Peramban dapat membuat ID unik untuk setiap pengiriman', 'Buka situs lewat https:// (GitHub Pages) atau http://localhost.');
+  const urlOk = /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(C.BACKEND_URL || '');
+  row(urlOk, 'BACKEND_URL di config.js terisi alamat Web App berakhiran /exec', 'Salin alamat hasil Deploy ke config.js (lihat docs/DEPLOYMENT.md).');
+  if (urlOk) {
+    let g = null, ok1 = null, bad1 = null;
+    try { g = await (await fetch(C.BACKEND_URL, { redirect: 'follow' })).json(); } catch (e) { /* dilaporkan di bawah */ }
+    row(!!(g && g.ok === true), 'Backend menjawab permintaan GET', 'Deployment harus: Execute as "Me", akses "Anyone". Buka alamat /exec langsung di peramban untuk melihat pesan galatnya.');
+    row(!!(g && g.instrument_version === I.VERSION), 'Versi instrumen backend (' + (g && g.instrument_version) + ') sama dengan situs (' + I.VERSION + ')', 'Salin ulang Instrument.gs ke Apps Script lalu deploy versi baru.');
+    try { ok1 = await post({}); } catch (e) { /* dilaporkan di bawah */ }
+    row(!!(ok1 && ok1.ok && ok1.status === 'dry_run'), 'Pengiriman (POST) diterima dan divalidasi tanpa disimpan', 'Jika Console peramban (F12) menampilkan galat CORS, catat pesannya. Pastikan sudah deploy versi terbaru Code.gs.');
+    row(!!(ok1 && ok1.bsmas_score === I.bsmasScore(SAMPLE) && ok1.productivity_score === I.productivityScore(SAMPLE) && ok1.bsmas_category === I.bsmasCategory(I.bsmasScore(SAMPLE))),
+      'Skor dari backend sama dengan hitungan di situs (BSMAS ' + I.bsmasScore(SAMPLE) + ', produktivitas ' + I.productivityScore(SAMPLE) + ')', 'Instrument.gs di Apps Script tidak sama dengan instrument.js.');
+    try { bad1 = await post({ answers: Object.assign({}, SAMPLE, { F1: 24, F7: 1 }) }); } catch (e) { /* dilaporkan di bawah */ }
+    row(!!(bad1 && bad1.error === 'validation' && bad1.errors.some((e) => e.code === 'sum_exceeds_24')), 'Backend menolak data tidak valid (media sosial 24 jam + tidur 1 jam)', 'Deploy ulang dengan versi terbaru Code.gs dan Instrument.gs.');
+  }
+  try {
+    const m = await (await fetch(C.MODEL_METADATA_URL || 'model/model-metadata.json', { cache: 'no-store' })).json();
+    row(!!m.status, 'Status model yang dibaca situs: ' + m.status + (m.version ? ' (versi ' + m.version + ')' : ''), '');
+  } catch (e) { row(false, 'Berkas model/model-metadata.json terbaca', 'Pastikan berkas itu ikut terunggah ke GitHub.'); }
+  document.getElementById('summary').innerHTML = '<strong></strong>';
+  document.querySelector('#summary strong').textContent = bad ? '✗ ' + bad + ' pemeriksaan gagal. Perbaiki sesuai petunjuk, lalu muat ulang halaman ini.'
+    : '✓ Semua pemeriksaan berhasil. Langkah berikutnya: uji satu pengiriman nyata dan periksa baris di Google Sheets.';
+})();
+</script>
+</body>
+</html>

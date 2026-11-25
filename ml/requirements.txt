@@ -1,0 +1,9 @@
+# Diuji dengan: Python 3.12, numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, scipy 1.18.1, matplotlib 3.11.2
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+scipy>=1.11
+joblib>=1.3
+matplotlib>=3.8
+shap>=0.45          # dipakai pada langkah SHAP (belum diuji di lingkungan pengembangan)
+scikit-posthocs>=0.9 # dipakai pada analisis statistik Subbab 3.6.6

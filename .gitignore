@@ -1,0 +1,9 @@
+# Data responden dan artefak privat: JANGAN pernah masuk repository publik
+ml/data/
+ml/reports/*/private/
+ml/reports/*/model.joblib
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
+tests/.generated/

@@ -1,0 +1,30 @@
+{
+ "columns": ["F1_durasi_jam","F2_frekuensi_buka","F3_instagram","F3_tiktok","F3_whatsapp","F3_youtube","F3_facebook","F3_x","F3_lainnya","F4_hiburan","F4_komunikasi","F4_informasi","F4_belajar_tugas","F4_konten_berjualan","F4_lainnya","F5_menjelang_tidur","F6_notifikasi","F7_jam_tidur"],
+ "base": {"S1":"ya","S2":"ya","S3":"belum","D1":20,"D2":"perempuan","D3":2023,"D4":"s1_informatika","F1":3.5,"F2":3,"F3":"tiktok","F4":"hiburan","F5":4,"F6":2,"F7":6.5,"B1":3,"B2":3,"B3":2,"B4":2,"B5":1,"B6":2,"P1":3,"P2":4,"P3":2,"P4":5,"P5":1,"P6":2,"P7":5},
+ "bsmas": [[[1,1,1,1,1,1],6,"rendah"],[[3,3,3,3,3,3],18,"rendah"],[[4,3,3,3,3,3],19,"sedang"],[[4,4,4,4,4,3],23,"sedang"],[[4,4,4,4,4,4],24,"tinggi"],[[5,5,5,5,5,5],30,"tinggi"]],
+ "productivity": [[[1,1,1,1,5,5,5],7],[[5,5,5,5,1,1,1],35],[[3,4,2,5,1,2,5],24],[[3,3,3,3,3,3,3],21]],
+ "vectors": [
+  [{"F1":3.5,"F2":3,"F3":"tiktok","F4":"hiburan","F5":4,"F6":2,"F7":6.5},[3.5,3,0,1,0,0,0,0,0,1,0,0,0,0,0,4,2,6.5]],
+  [{"F1":0,"F2":1,"F3":"lainnya","F4":"lainnya","F5":1,"F6":1,"F7":24},[0,1,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1,24]]
+ ],
+ "validation": [
+  ["TC-02",{"F1":null},["F1:required"]],
+  ["TC-03a",{"F1":-1},["F1:range"]],
+  ["TC-03b",{"F1":25},["F1:range"]],
+  ["TC-03c",{"F7":25},["F7:range"]],
+  ["TC-04a",{"F1":24,"F7":0},[]],
+  ["TC-04b",{"F1":24,"F7":1},["F7:sum_exceeds_24"]],
+  ["koma-desimal",{"F1":"3,5","F7":"6,5"},[]],
+  ["F1-teks",{"F1":"abc"},["F1:format"]],
+  ["penyaring-S1",{"S1":"tidak"},["S1:screening_failed"]],
+  ["penyaring-S3",{"S3":"sudah"},["S3:screening_failed"]],
+  ["lainnya-tanpa-isian",{"F3":"lainnya"},["F3_other:other_required"]],
+  ["lainnya-dengan-isian",{"F3":"lainnya","F3_other":"Telegram"},[]],
+  ["usia-di-bawah-batas",{"D1":15},["D1:range"]],
+  ["angkatan-di-atas-batas",{"D3":2027},["D3:range"]],
+  ["F2-di-luar-skala",{"F2":6},["F2:range"]],
+  ["F2-bukan-bulat",{"F2":2.5},["F2:format"]],
+  ["F4-opsi-asing",{"F4":"xyz"},["F4:invalid_option"]],
+  ["B3-nol",{"B3":0},["B3:range"]]
+ ]
+}

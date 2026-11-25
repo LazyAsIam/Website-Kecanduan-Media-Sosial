@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<base target="_top">
+<style>
+:root{color-scheme:light dark;--line:#8884;--acc:#0f6c7b}
+@media (prefers-color-scheme:dark){:root{--acc:#63c2d1}}
+body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0 auto;padding:16px;max-width:920px}
+h1{font-size:22px;margin:0 0 8px}h2{font-size:17px;margin:26px 0 6px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.card{border:1px solid var(--line);border-radius:8px;padding:10px 12px}.card b{display:block;font-size:24px}
+table{width:100%;border-collapse:collapse}td{padding:3px 6px;border-bottom:1px solid var(--line);vertical-align:middle}td:last-child{text-align:right;width:3.5rem}
+td.b{width:45%}td.b i{display:block;height:9px;background:var(--acc);border-radius:4px}
+.muted{opacity:.75}.warn{border-left:4px solid #c98a00;padding:6px 10px;margin:8px 0}
+</style>
+</head>
+<body>
+<h1>Dashboard peneliti</h1>
+<p id="status">Memuat…</p>
+<div id="out" hidden>
+  <p class="muted">Hanya agregat. Baris uji (D4 "Lainnya" = UJI) tidak dihitung. Dibuat <span id="gen"></span>.</p>
+  <div class="cards">
+    <div class="card"><span>Responden</span><b id="n"></b></div>
+    <div class="card"><span>Baris uji (tidak dihitung)</span><b id="ntest"></b></div>
+    <div class="card"><span>Skor BSMAS (rata-rata)</span><b id="bsmas"></b></div>
+    <div class="card"><span>Produktivitas (rata-rata)</span><b id="prod"></b></div>
+  </div>
+  <p>Pengiriman terakhir: <span id="last"></span></p>
+  <h2>Kategori BSMAS</h2><div id="cats"></div><div class="warn" id="gate"></div>
+  <h2>Program studi</h2><div id="prodi"></div>
+  <h2>Angkatan</h2><div id="angkatan"></div>
+  <h2>Pengiriman per hari (14 hari terakhir dengan data)</h2><div id="day"></div>
+  <h2>Karakteristik</h2><div id="gender"></div><div id="language"></div>
+  <h2>Kualitas data</h2><ul id="quality"></ul>
+  <h2>Model</h2><div id="model" class="muted">Isi <code>SITE_URL</code> di Code.gs untuk menampilkan status model.</div>
+  <h2>Sebaran jawaban per butir</h2><div id="items"></div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const f2 = (v) => (v === null || v === undefined ? '-' : Number(v).toFixed(2));
+const NAMES = { D1: 'Usia', D2: 'Jenis kelamin', D3: 'Angkatan', D4: 'Program studi', F1: 'Durasi per hari (jam)', F2: 'Frekuensi membuka (kode 1-5)', F3: 'Platform',
+  F4: 'Tujuan', F5: 'Menjelang tidur (1-5)', F6: 'Notifikasi (1-3)', F7: 'Jam tidur', P1: 'Jam belajar mandiri (kode 1-5)' };
+function bars(o, order) {
+  const keys = order || Object.keys(o), mx = Math.max(1, ...keys.map((k) => o[k] || 0));
+  return '<table>' + keys.map((k) => '<tr><td>' + esc(k) + '</td><td class="b"><i style="width:' + ((o[k] || 0) / mx * 100).toFixed(1) + '%"></i></td><td>' + (o[k] || 0) + '</td></tr>').join('') + '</table>';
+}
+function stat(s) { return s.n ? 'n=' + s.n + ', min ' + f2(s.min) + ', Q1 ' + f2(s.q1) + ', median ' + f2(s.median) + ', Q3 ' + f2(s.q3) + ', maks ' + f2(s.max) + ', rata-rata ' + f2(s.mean) + ', SD ' + f2(s.sd) : 'belum ada data'; }
+function render(s) {
+  $('status').hidden = true; $('out').hidden = false;
+  $('gen').textContent = s.generated_at; $('n').textContent = s.n; $('ntest').textContent = s.n_test_rows; $('last').textContent = s.last_submission || '-';
+  $('bsmas').textContent = f2(s.bsmas.stats.mean); $('prod').textContent = f2(s.productivity.mean);
+  $('cats').innerHTML = bars(s.bsmas.cats, ['rendah', 'sedang', 'tinggi']);
+  $('gate').textContent = s.gate.ok ? 'Setiap kategori sudah mencapai ' + s.gate.target + ' responden.' : 'Syarat model belum terpenuhi: kategori terkecil baru ' + s.gate.min_per_class + ' dari ' + s.gate.target + ' responden.';
+  $('prodi').innerHTML = bars(s.prodi);
+  $('angkatan').innerHTML = bars(s.angkatan, Object.keys(s.angkatan).sort());
+  $('day').innerHTML = bars(Object.fromEntries(s.by_day.map((x) => [x.d, x.n])), s.by_day.map((x) => x.d));
+  $('gender').innerHTML = 'Jenis kelamin' + bars(s.gender); $('language').innerHTML = 'Bahasa pengisian' + bars(s.language);
+  const q = s.quality;
+  $('quality').innerHTML = ['Baris dengan jawaban persis sama: ' + q.identical_answer_rows + ' (hanya penanda, tinjau manual)', 'Pengisian kurang dari 60 detik: ' + q.fast_under_60s,
+    'Median lama pengisian: ' + f2(q.median_duration_s) + ' detik', 'Baris tidak lolos validasi (mungkin diedit manual): ' + q.invalid_rows, 'Skor tersimpan berbeda dari hitung ulang: ' + q.score_mismatch]
+    .map((t) => '<li>' + esc(t) + '</li>').join('');
+  $('items').innerHTML = Object.keys(s.items).map((k) => '<h3>' + esc(k + (NAMES[k] ? ' ' + NAMES[k] : '')) + '</h3>' + (s.items[k].stats ? '<p class="muted">' + esc(stat(s.items[k].stats)) + '</p>' : bars(s.items[k].counts))).join('');
+  if (s.site_url) {
+    fetch(s.site_url.replace(/\/?$/, '/') + 'model/model-metadata.json', { cache: 'no-store' }).then((r) => r.json()).then((m) => {
+      const t = m.test || {};
+      $('model').textContent = 'Status: ' + m.status + (m.version ? ', versi ' + m.version : '') + (m.trained_at ? ', dilatih ' + m.trained_at : '') +
+        (t.macro_f1 !== undefined ? '. F1 makro uji ' + f2(t.macro_f1) + ' (baseline ' + f2(t.baseline_macro_f1) + '), akurasi ' + f2(t.accuracy) : '');
+    }).catch(() => { $('model').textContent = 'Status model tidak terbaca dari ' + s.site_url; });
+  }
+}
+google.script.run.withSuccessHandler(render).withFailureHandler((e) => { $('status').textContent = 'Gagal: ' + (e && e.message ? e.message : e); }).getStats();
+</script>
+</body>
+</html>
